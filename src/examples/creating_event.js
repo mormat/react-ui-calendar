@@ -1,23 +1,17 @@
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Scheduler, EventForm } from '@mormat/react_scheduler';
-import { useState, useMemo } from 'react';
+import { useState} from 'react';
 
 function App() {
     
     const [schedulerEvent, setSchedulerEvent] = useState();
     
-    const scheduler = useMemo(() => {
-        
-        const handleEventAdd = function(schedulerEvent) {
-            setSchedulerEvent(schedulerEvent);
-        }
-        
-        return ( <Scheduler onEventAdd = { handleEventAdd } /> );
-        
-    }, [setSchedulerEvent]);
-
+    const handleEventAdd = function(schedulerEvent) {
+        setSchedulerEvent(schedulerEvent);
+    }
+    
     return <>
-        { scheduler }
+        <Scheduler onEventAdd = { handleEventAdd } />
         { schedulerEvent && (
             <EventForm 
                 onConfirm = { (values) => {
@@ -32,5 +26,5 @@ function App() {
     </>;
 }
 
-
-render(<App />, document.getElementById('scheduler'));
+const root = createRoot( document.getElementById('scheduler' ) );
+root.render(<App />);

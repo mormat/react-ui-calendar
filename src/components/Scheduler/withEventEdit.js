@@ -1,5 +1,5 @@
 
-function withEventEdit( WrappedComponent ) {
+function withEventEdit( WrappedScheduler ) {
     
     return function( { onEventEdit, ...otherProps } ) {
         
@@ -8,9 +8,8 @@ function withEventEdit( WrappedComponent ) {
         }
         
         return (
-            <WrappedComponent { ...otherProps } 
-                onEventClick = { onEventClick }
-                eventClickable = { true }
+            <WrappedScheduler { ...otherProps } 
+                onEventClick = { onEventEdit ? onEventClick : null }
             />
         );
         

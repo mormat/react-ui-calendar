@@ -1,4 +1,5 @@
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import Scheduler from '@mormat/react_scheduler';
 
-render(<Scheduler />, document.getElementById('scheduler'));
+const root = createRoot( document.getElementById('scheduler' ) );
+root.render(<Scheduler />);

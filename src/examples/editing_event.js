@@ -1,33 +1,25 @@
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Scheduler, EventForm } from '@mormat/react_scheduler';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 
 function App() {
     
     const [schedulerEvent, setSchedulerEvent] = useState();
     
-    const scheduler = useMemo(() => {
-        
-        const events = [
-            { "label": "interview",  "start": "2024-10-08 10:00" },
-        ]
-        
-        const handleEventEdit = function(schedulerEvent) {
-            setSchedulerEvent(schedulerEvent);
-        }
-        
-        return ( 
-            <Scheduler 
-                currentDate = "2024-10-08"
-                events = { events } 
-                onEventEdit = { handleEventEdit } 
-            /> 
-        );
-        
-    }, [setSchedulerEvent]);
+    const events = [
+        { "label": "interview",  "start": "2024-10-08 10:00" },
+    ]
 
+    const handleEventEdit = function(schedulerEvent) {
+        setSchedulerEvent(schedulerEvent);
+    }
+    
     return <>
-        { scheduler }
+        <Scheduler 
+            currentDate = "2024-10-08"
+            events = { events } 
+            onEventEdit = { handleEventEdit } 
+        /> 
         { schedulerEvent && (
             <EventForm 
                 values = { schedulerEvent.values }
@@ -44,4 +36,6 @@ function App() {
     </>;
 }
 
-render(<App />, document.getElementById('scheduler'));
+const root = createRoot( document.getElementById('scheduler' ) );
+root.render(<App />);
+

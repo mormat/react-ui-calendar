@@ -1,38 +1,41 @@
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useReducer } from 'react';
 import jscheduler_ui from '@mormat/jscheduler_ui';
 
+import withEventAdd    from './Scheduler/withEventAdd';
+import withEventEdit   from './Scheduler/withEventEdit';
+import withRootElement from './Scheduler/withRootElement';
 import Header from './Header';
 import Layout from './Layout';
 
 const instances = new Map();
 
-function Scheduler( { translations = {}, ...schedulerProps } ) {
+function BaseScheduler( { translations = {}, onEventAdd, ...schedulerProps } ) {
     
-    const divRef = useRef();
-    const [viewMode,       setViewMode]       = useState('week');
-    const [currentDate,    setCurrentDate]    = useState();
-    const [schedulerLabel, setSchedulerLabel] = useState('');
+    const schedulerRef = useRef();
+    const [schedulerOptions, dispatchSchedulerOptions] = useReducer(
+        createSchedulerOptionsReducer( schedulerRef ), 
+        {}
+    );
     
-    const getInstance = () => instances.get(divRef.current);
+    const [ randomValue ] = useState( () => self.crypto.randomUUID());
     
     useEffect(() => {
         
         const { events, ...otherSchedulerProps } = schedulerProps;
         
-        const element  = divRef.current;     
+        const element  = schedulerRef.current;     
         const scheduler = jscheduler_ui.render(
             element, 
             { 
-                ...defaultSchedulerProps, 
                 ...otherSchedulerProps,
-                styles: {position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }
+                styles: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }
             }
         );
-        setSchedulerLabel( scheduler.getLabel() );
-        instances.set(element, scheduler );
-        
-        loadEvents(events);
+
+        dispatchSchedulerOptions( { type: 'init' } );
+
+        instances.set(element, scheduler );        
         
         return function() {
             instances.delete( element );
@@ -41,39 +44,12 @@ function Scheduler( { translations = {}, ...schedulerProps } ) {
     }, []);
     
     useEffect(() => {
-        const scheduler = instances.get(divRef.current);
-        scheduler.setOptions( { 
-            viewMode, 
-            headersVisible: viewMode !== 'day'
-        } );
-        setSchedulerLabel( scheduler.getLabel() );
         loadEvents( schedulerProps.events );
+    }, [schedulerOptions]);
         
-    }, [viewMode, currentDate]);
-    
-    const handleClickNext = (e) => {
-        e.preventDefault();
-        const scheduler = getInstance();
-        scheduler.next();
-        setCurrentDate( scheduler.getOption('currentDate') );
-    }
-    
-    const handleClickToday = (e) => {
-        e.preventDefault();
-        const scheduler = getInstance();
-        scheduler.today();
-        setCurrentDate( scheduler.getOption('currentDate') );
-    }
-    
-    const handleClickPrevious = (e) => {
-        e.preventDefault();
-        const scheduler = getInstance();
-        scheduler.previous();
-        setCurrentDate( scheduler.getOption('currentDate') );
-    }
-    
     function loadEvents(events) {
-        const scheduler = instances.get(divRef.current);
+        
+        const scheduler = instances.get(schedulerRef.current);
         
         if (typeof events === 'function') {
             const dateRange = scheduler.getEventsDateRange();
@@ -88,45 +64,29 @@ function Scheduler( { translations = {}, ...schedulerProps } ) {
         
     }
     
-    const header = (
-        <Header>
-            <Header.ButtonGroup 
-                items={[
-                    { label: '<',     onClick: handleClickPrevious },
-                    { 
-                        label: translations['header.today'] || 'today', 
-                        onClick: handleClickToday 
-                    },
-                    { label: '>',     onClick: handleClickNext },
-                ]} 
-            />
-            <h4>{ schedulerLabel }</h4>
-            <Header.ToggleGroup 
-                items={[
-                    { 
-                        label: translations['header.day'] || 'day', 
-                        value: 'day' 
-                    },
-                    { 
-                        label: translations['header.week'] || 'week', 
-                        value: 'week' 
-                    },
-                    { 
-                        label: translations['header.month'] || 'month', 
-                        value: 'month'
-                    }
-                ]} 
-                onChange = { (e) => setViewMode(e.target.value)} 
-                value={ viewMode } 
-            />
-        </Header>
-    );
-    
     return ( 
         <Layout.FixedHeader 
-            header = { header }
+            header = { 
+                <>
+                    <Header { ... {   
+                        translations,
+                        schedulerOptions, 
+                        dispatchSchedulerOptions
+                    } } /> 
+                    { /*
+                    <button onClick={
+                        (e) => {
+                            e.preventDefault();
+                            onEventAdd({});
+                        }
+                    }>
+                        { randomValue }
+                    </button>
+                     */ }
+                </>
+            }
             body   = {( 
-                <div ref = { divRef } 
+                <div ref = { schedulerRef } 
                      data-scheduler
                      style= { Layout.styles['full'] }>
                 </div>
@@ -136,20 +96,54 @@ function Scheduler( { translations = {}, ...schedulerProps } ) {
     
 }
 
-const defaultSchedulerProps = {
-    headerRenderer: function( { year, monthIndex, day } ) {
-        var date = new Date(year, monthIndex, day);
-        return date.toLocaleString(
-            'en', 
-            { 
-                weekday: 'short', 
-                month: 'short',  
-                day:'numeric',
-            }
-        ) 
+function createSchedulerOptionsReducer( schedulerRef ) {
+    
+    return function(state, action) {
+        const scheduler = instances.get(schedulerRef.current);
+        
+        switch (action.type) {
+            case 'init':
+                return {
+                    ...state,
+                    title:    scheduler.getLabel(),
+                    viewMode: scheduler.getOption('viewMode')
+                }
+            case 'previous':
+                scheduler.previous();
+                return {
+                    ...state,
+                    title:   scheduler.getLabel(),
+                }
+            case 'today':
+                scheduler.today();
+                return {
+                    ...state,
+                    title:   scheduler.getLabel(),
+                }
+            case 'next':
+                scheduler.next();
+                return {
+                    ...state,
+                    title:   scheduler.getLabel(),
+                }
+            case 'switchViewMode':
+                const { viewMode } = action;
+                scheduler.setOptions( { viewMode } );
+                return {
+                    ...state, viewMode,
+                    title:    scheduler.getLabel(),
+                }
+            default:
+                return state;
+        }
     }
+    
 }
 
+let Scheduler = BaseScheduler;
+Scheduler = withEventAdd( Scheduler );
+Scheduler = withEventEdit( Scheduler );
+Scheduler = withRootElement( Scheduler );
 
 export default Scheduler;
     

@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 
-import { instances } from './Scheduler';
+import { instances } from '../Scheduler';
 
-function withEventAdd( WrappedComponent ) {
+function withEventAdd( WrappedScheduler ) {
     
     return function( { onEventAdd, ...otherProps } ) {
         
@@ -21,7 +21,7 @@ function withEventAdd( WrappedComponent ) {
                  className="mormat-scheduler-withEventAdd" 
                  style= {{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
             >
-                <WrappedComponent { ...otherProps } />
+                <WrappedScheduler { ...otherProps } />
                         
                 { onEventAdd && (
                     <a onClick = { handleEventAdd } title="Add event">
